@@ -7,11 +7,11 @@ import type { Bidder } from './types';
 export function createBidder(spec: BidderSpec): Bidder {
   switch (spec.kind) {
     case 'honest':
-      return createHonest(spec.id, spec.name);
+      return createHonest(spec);
     case 'bulldozer':
-      return createBulldozer(spec.id, spec.name);
+      return createBulldozer(spec);
     case 'miser':
-      return createMiser(spec.id, spec.name);
+      return createMiser(spec);
     default:
       // TODO(D5): sniper, cartel
       throw new Error(`${spec.kind} 성격은 아직 구현되지 않았다`);

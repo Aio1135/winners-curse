@@ -15,7 +15,7 @@ export const STAGES: StageDef[] = [
     targetValue: 1500,
     bidders: [
       { kind: 'honest', id: 'honest-1' },
-      { kind: 'miser', id: 'miser-1' },
+      { kind: 'miser', id: 'miser-1', preferredCategory: 'antique' },
     ],
   },
   {
@@ -30,7 +30,7 @@ export const STAGES: StageDef[] = [
     targetValue: 1500,
     bidders: [
       { kind: 'honest', id: 'honest-1' },
-      { kind: 'bulldozer', id: 'bulldozer-1' },
+      { kind: 'bulldozer', id: 'bulldozer-1', preferredCategory: 'art' },
     ],
   },
 ];

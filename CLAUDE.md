@@ -1,4 +1,4 @@
-# 낙찰王 (Auction Gauntlet)
+# 승자의 저주 (Winner's Curse)
 
 AI 입찰자를 상대로 경매 이론을 공략하는 싱글플레이 웹 게임.
 플레이어는 스테이지마다 다른 경매 방식(영국식/네덜란드식/비공개 1가/Vickrey)으로
@@ -34,7 +34,7 @@ src/
   engine/          # 순수 로직. React 금지. 전부 순수 함수.
     rng.ts         # 시드 RNG (mulberry32). 모든 랜덤의 단일 출처
     types.ts       # 공용 타입 정의
-    items.ts       # 아이템 생성 (진짜 가치 + 감정치 노이즈)
+    items.ts       # 아이템 생성 (진짜 가치 + 감정치 노이즈 + 카테고리)
     auction.ts     # runAuction() — 4개 방식의 판정 로직
     settle.ts      # 낙찰 판정, 손익 계산, 승자의 저주 판정
     review.ts      # 복기 데이터 생성 (판별 피드백 포함)
@@ -124,7 +124,9 @@ interface BidderContext {
   appraisal: number;      // 자신의 감정치
   budget: number;         // 남은 예산
   auctionType: AuctionType;
+  itemCategory: ItemCategory; // 이번 아이템 카테고리 (공개 정보)
   roundIndex: number;
+  totalRounds: number;
   history: RoundRecord[]; // 지난 라운드 공개 정보
   rng: Rng;
 }
@@ -147,7 +149,19 @@ interface Bidder {
 | cartel | 담합조 (2인 1조) | 서로의 감정치 중 높은 쪽만 wtp = 감정치 × 1.0으로 입찰, 다른 쪽은 wtp = 0. 낙찰 이익은 공유(연출상). 복기에서 담합 사실 공개 |
 
 원칙: AI는 절대 플레이어의 감정치나 입력을 훔쳐보지 않는다 (공정성).
-AI가 아는 것 = 자기 감정치, 공개 호가, 지난 라운드의 공개 기록뿐.
+AI가 아는 것 = 자기 감정치, 공개 호가, 아이템 카테고리, 지난 라운드의 공개 기록뿐.
+
+### 6.1 행동 변주 (단조로움 방지)
+
+- 아이템 카테고리 4종: 시계 / 미술품 / 골동품 / 수집품. ROUND_INTRO에서 공개 정보.
+- **선호 카테고리**: 스테이지 데이터(`BidderSpec.preferredCategory`)로 AI에게 부여.
+  해당 카테고리 아이템에는 wtp × 1.15 (수치는 D5 밸런싱 대상).
+  브리핑 화면에 "OO 애호가"로 힌트를 노출해 플레이어가 읽고 대응할 수 있게 한다.
+- **상황 반응형**:
+  - bulldozer: 연속 미낙찰 1회당 wtp 배율 +0.05 (최대 +0.15). 지면 열받는다.
+  - miser: 마지막 2라운드에 진입했는데 무낙찰이면 상한 완화 — min(감정치×0.9, 예산×0.45).
+  - honest: 변주 없음. 기준선 역할 유지 (선호 카테고리도 부여하지 않는 것을 권장).
+- 모든 변주는 복기 대사(`reviewLine`)에서 반드시 정직하게 설명한다.
 
 ## 7. 스테이지 커리큘럼 (8개)
 

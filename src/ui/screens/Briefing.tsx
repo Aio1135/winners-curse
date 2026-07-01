@@ -1,4 +1,5 @@
 import { createBidder } from '../../bidders';
+import { CATEGORY_LABEL } from '../../engine/items';
 import { seedFromString } from '../../engine/rng';
 import { useGame } from '../state/GameContext';
 import { AUCTION_TYPE_LABEL, TEXT, formatMoney } from '../text';
@@ -44,7 +45,14 @@ export default function Briefing() {
               <li key={spec.id} className="flex items-center gap-3">
                 <span className="text-2xl">{bidder.emoji}</span>
                 <div>
-                  <div className="font-semibold">{bidder.name}</div>
+                  <div className="font-semibold">
+                    {bidder.name}
+                    {spec.preferredCategory !== undefined && (
+                      <span className="ml-2 text-xs font-normal text-rose-300">
+                        ❤️ {TEXT.briefing.preferenceHint(CATEGORY_LABEL[spec.preferredCategory])}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm text-slate-400">“{bidder.tagline}”</div>
                 </div>
               </li>

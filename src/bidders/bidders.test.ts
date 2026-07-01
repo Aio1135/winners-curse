@@ -1,17 +1,36 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '../engine/rng';
+import type { RoundRecord } from '../engine/types';
 import { createBidder } from './index';
 import type { BidderContext, BidderOutcome } from './types';
+import { PREFERENCE_BOOST, consecutiveLosses } from './utils';
 
 function ctx(overrides: Partial<BidderContext> = {}): BidderContext {
   return {
     appraisal: 1000,
     budget: 3000,
     auctionType: 'sealed-first',
+    itemCategory: 'collectible',
     roundIndex: 0,
+    totalRounds: 4,
     history: [],
     rng: createRng(1),
     ...overrides,
+  };
+}
+
+/** winnerId만 의미 있는 최소 라운드 기록 */
+function lossRecord(roundIndex: number, winnerId: string | null): RoundRecord {
+  return {
+    roundIndex,
+    auctionType: 'sealed-first',
+    itemId: `item-${roundIndex}`,
+    itemValue: 1000,
+    winnerId,
+    price: 0,
+    profit: 0,
+    winnersCurse: false,
+    bids: [],
   };
 }
 
@@ -24,19 +43,35 @@ const outcome: BidderOutcome = {
 };
 
 describe('honest (감정사)', () => {
-  it('wtp = 감정치 그대로', () => {
+  it('wtp = 감정치 그대로 (기준선)', () => {
     const bidder = createBidder({ kind: 'honest', id: 'h1' });
     expect(bidder.decide(ctx()).wtp).toBe(1000);
   });
 });
 
 describe('bulldozer (불도저)', () => {
-  it('wtp = 감정치 × 1.15~1.3', () => {
+  it('wtp = 감정치 × 1.15~1.3 (변주 조건 없을 때)', () => {
     const bidder = createBidder({ kind: 'bulldozer', id: 'b1' });
     for (let seed = 0; seed < 50; seed += 1) {
       const { wtp } = bidder.decide(ctx({ rng: createRng(seed) }));
       expect(wtp).toBeGreaterThanOrEqual(1000 * 1.15);
       expect(wtp).toBeLessThanOrEqual(1000 * 1.3);
+    }
+  });
+
+  it('연속 미낙찰 1회당 +0.05 분노 가산 (최대 +0.15)', () => {
+    const bidder = createBidder({ kind: 'bulldozer', id: 'b1' });
+    const twoLosses = [lossRecord(0, 'x'), lossRecord(1, null)];
+    for (let seed = 0; seed < 30; seed += 1) {
+      const { wtp } = bidder.decide(ctx({ history: twoLosses, rng: createRng(seed) }));
+      expect(wtp).toBeGreaterThanOrEqual(1000 * 1.25);
+      expect(wtp).toBeLessThanOrEqual(1000 * 1.4);
+    }
+    // 5연패여도 가산은 +0.15에서 멈춘다
+    const fiveLosses = Array.from({ length: 5 }, (_, i) => lossRecord(i, 'x'));
+    for (let seed = 0; seed < 30; seed += 1) {
+      const { wtp } = bidder.decide(ctx({ history: fiveLosses, rng: createRng(seed) }));
+      expect(wtp).toBeLessThanOrEqual(1000 * 1.45);
     }
   });
 
@@ -56,12 +91,40 @@ describe('miser (구두쇠)', () => {
     // 예산 쪽이 상한: 0.3 × 1000 = 300 < 0.8 × 1000 = 800
     expect(bidder.decide(ctx({ budget: 1000 })).wtp).toBe(300);
   });
+
+  it('마지막 2라운드 + 무낙찰이면 상한 완화: min(감정치 × 0.9, 예산 × 0.45)', () => {
+    const bidder = createBidder({ kind: 'miser', id: 'm1' });
+    const lateEmpty = ctx({ roundIndex: 2, history: [lossRecord(0, 'x'), lossRecord(1, 'x')] });
+    expect(bidder.decide(lateEmpty).wtp).toBe(900);
+    // 이미 낙찰한 적 있으면 평소대로
+    const lateWon = ctx({ roundIndex: 2, history: [lossRecord(0, 'm1'), lossRecord(1, 'x')] });
+    expect(bidder.decide(lateWon).wtp).toBe(800);
+  });
+});
+
+describe('선호 카테고리', () => {
+  it('선호 아이템이면 wtp × 1.15', () => {
+    const miser = createBidder({ kind: 'miser', id: 'm1', preferredCategory: 'antique' });
+    expect(miser.decide(ctx({ itemCategory: 'antique' })).wtp).toBe(800 * PREFERENCE_BOOST);
+    expect(miser.decide(ctx({ itemCategory: 'art' })).wtp).toBe(800);
+
+    const honest = createBidder({ kind: 'honest', id: 'h1', preferredCategory: 'timepiece' });
+    expect(honest.decide(ctx({ itemCategory: 'timepiece' })).wtp).toBe(1000 * PREFERENCE_BOOST);
+  });
+});
+
+describe('utils', () => {
+  it('consecutiveLosses는 직전부터 연속 미낙찰만 센다', () => {
+    const history = [lossRecord(0, 'x'), lossRecord(1, 'b1'), lossRecord(2, 'x'), lossRecord(3, null)];
+    expect(consecutiveLosses(ctx({ history }), 'b1')).toBe(2);
+    expect(consecutiveLosses(ctx({ history: [] }), 'b1')).toBe(0);
+  });
 });
 
 describe('공통', () => {
   it('복기 대사는 비어 있지 않다', () => {
     for (const kind of ['honest', 'bulldozer', 'miser'] as const) {
-      const bidder = createBidder({ kind, id: `${kind}-1` });
+      const bidder = createBidder({ kind, id: `${kind}-1`, preferredCategory: 'collectible' });
       expect(bidder.reviewLine(ctx(), outcome).length).toBeGreaterThan(0);
       expect(bidder.reviewLine(ctx(), { ...outcome, won: true }).length).toBeGreaterThan(0);
     }

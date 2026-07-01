@@ -1,7 +1,7 @@
 import type { Rng } from '../engine/rng';
-import type { AuctionType, RoundRecord } from '../engine/types';
+import type { AuctionType, ItemCategory, RoundRecord } from '../engine/types';
 
-// AI가 아는 것 = 자기 감정치, 공개 호가, 지난 라운드의 공개 기록뿐.
+// AI가 아는 것 = 자기 감정치, 공개 호가, 아이템 카테고리, 지난 라운드의 공개 기록뿐.
 // 플레이어의 감정치나 입력을 절대 훔쳐보지 않는다 (공정성).
 export interface BidderContext {
   /** 자신의 감정치 */
@@ -9,7 +9,10 @@ export interface BidderContext {
   /** 남은 예산 */
   budget: number;
   auctionType: AuctionType;
+  /** 이번 아이템 카테고리 (공개 정보) */
+  itemCategory: ItemCategory;
   roundIndex: number;
+  totalRounds: number;
   /** 지난 라운드 공개 정보 */
   history: RoundRecord[];
   rng: Rng;

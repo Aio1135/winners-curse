@@ -126,7 +126,9 @@ function resolveRound(state: GameState, playerBid: number): GameState {
       appraisal: round.aiAppraisals[bidder.id].value,
       budget: state.aiBudgets[bidder.id] ?? 0,
       auctionType,
+      itemCategory: round.item.category,
       roundIndex: state.roundIndex,
+      totalRounds: stage.rounds,
       history: state.history,
       rng: deriveRng(state.seed, state.roundIndex, `decide:${bidder.id}`),
     };
