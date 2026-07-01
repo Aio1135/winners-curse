@@ -1,9 +1,8 @@
+import { getStage, TOTAL_STAGE_SLOTS } from '../../stages/stages';
 import { useGame } from '../state/GameContext';
 import { TEXT } from '../text';
 
-// D1 골격: 스테이지 8칸 자리만 잡는다. 제목·언락·별점은 D5~D6에서 stages.ts 기반으로 채운다.
-const STAGE_IDS = [1, 2, 3, 4, 5, 6, 7, 8];
-
+// 언락/별점 표시는 D6에서. 지금은 데이터가 있는 스테이지만 열린다.
 export default function StageSelect() {
   const { dispatch } = useGame();
 
@@ -19,17 +18,26 @@ export default function StageSelect() {
           {TEXT.stageSelect.heading}
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {STAGE_IDS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => dispatch({ type: 'SELECT_STAGE', stageId: id })}
-              className="rounded-xl border border-slate-700 bg-slate-800 p-4 text-center transition hover:border-amber-400 hover:bg-slate-700"
-            >
-              <div className="text-2xl">🔨</div>
-              <div className="mt-1 text-sm">{TEXT.stageSelect.stageLabel(id)}</div>
-            </button>
-          ))}
+          {Array.from({ length: TOTAL_STAGE_SLOTS }, (_, i) => i + 1).map((id) => {
+            const stage = getStage(id);
+            return (
+              <button
+                key={id}
+                type="button"
+                disabled={stage === undefined}
+                onClick={() => dispatch({ type: 'SELECT_STAGE', stageId: id })}
+                className="rounded-xl border border-slate-700 bg-slate-800 p-4 text-center transition enabled:hover:border-amber-400 enabled:hover:bg-slate-700 disabled:opacity-40"
+              >
+                <div className="text-2xl">{stage ? '🔨' : '🔒'}</div>
+                <div className="mt-1 text-sm font-semibold">
+                  {TEXT.stageSelect.stageLabel(id)}
+                </div>
+                <div className="mt-0.5 text-xs text-slate-400">
+                  {stage ? stage.title : TEXT.stageSelect.comingSoon}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </section>
     </div>

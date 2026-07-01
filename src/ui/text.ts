@@ -1,20 +1,47 @@
 // 한국어 UI 텍스트는 전부 이 파일에 모은다.
 
+/** 금액 표기: 정수 + 천 단위 콤마 */
+export function formatMoney(amount: number): string {
+  return amount.toLocaleString('ko-KR');
+}
+
+export const AUCTION_TYPE_LABEL = {
+  english: '영국식 (공개 상승)',
+  dutch: '네덜란드식 (공개 하강)',
+  'sealed-first': '비공개 1가 (최고가 지불)',
+  'sealed-second': 'Vickrey · 비공개 2가 (2등 가격 지불)',
+  mixed: '라운드마다 방식 랜덤',
+} as const;
+
 export const TEXT = {
   app: {
     title: '낙찰王',
     subtitle: 'AI 입찰자를 상대로 경매 이론을 공략하는 전략 퍼즐',
   },
+  playerName: '나',
   stageSelect: {
     heading: '스테이지 선택',
     stageLabel: (id: number) => `스테이지 ${id}`,
-    locked: '잠김',
+    comingSoon: '준비 중',
   },
   briefing: {
     heading: '브리핑',
+    auctionType: '경매 방식',
+    rounds: '라운드',
+    roundsValue: (n: number) => `${n}라운드`,
+    budget: '시작 예산',
+    coins: '감정 코인',
+    coinsValue: (n: number) => `${n}개`,
+    target: '클리어 조건',
+    targetValue: (n: number) => `확보 가치 합계 ${formatMoney(n)} 이상`,
+    opponents: '오늘의 상대',
     start: '경매 시작',
     back: '스테이지 선택으로',
-    placeholder: '경매 방식·예산·클리어 조건·AI 소개가 여기에 표시됩니다.',
+  },
+  appraisal: {
+    label: (value: number, sigma: number) =>
+      `감정치 ${formatMoney(value)} (오차 ±${Math.round(sigma * 100)}%)`,
+    refreshed: '감정 의뢰 완료 — 오차가 줄었다!',
   },
   auctionRoom: {
     round: (current: number, total: number) => `라운드 ${current} / ${total}`,
@@ -24,24 +51,45 @@ export const TEXT = {
     requestAppraisal: '감정 의뢰 (코인 1)',
     pass: '이번 라운드 패스',
     enterBidding: '입찰 참여',
-    placeBid: '입찰 제출',
-    drop: '포기',
-    openReview: '복기 보기',
-    nextRound: '다음 라운드',
-    toResult: '결과 보기',
     exit: '스테이지 나가기',
+    phaseIntro: '아이템 공개',
+    phaseJudgement: '판단의 시간',
+    phaseBidding: '입찰 중',
   },
-  phase: {
-    ROUND_INTRO: '아이템 공개',
-    JUDGEMENT: '판단의 시간',
-    BIDDING: '입찰 중',
-    SETTLE: '낙찰 정산',
-    REVIEW: '복기',
-    RESULT: '최종 결과',
+  bidding: {
+    sealedFirstHint: '전원 동시 제출. 최고가가 자기 입찰액을 그대로 지불한다.',
+    sealedSecondHint: '전원 동시 제출. 최고가가 낙찰하되 2등 가격만 지불한다.',
+    amountLabel: '입찰액',
+    submit: '봉투 제출',
+    zeroNote: '0 = 불참',
+  },
+  settle: {
+    heading: '낙찰 정산',
+    passed: '유찰 — 아무도 낙찰하지 않았다',
+    winner: '낙찰자',
+    price: '낙찰가',
+    trueValue: '진짜 가치',
+    profit: '낙찰 손익',
+    winnersCurse: '⚡ 승자의 저주! 진짜 가치보다 비싸게 샀다',
+    toReview: '복기 보기',
+  },
+  review: {
+    heading: '복기',
+    trueValueBar: '진짜 가치',
+    bidLabel: (n: number) => `입찰 ${formatMoney(n)}`,
+    noBid: '불참',
+    winnerBadge: '낙찰',
+    next: '다음 라운드',
+    toResult: '결과 보기',
+  },
+  result: {
+    heading: '최종 결과',
+    acquired: '확보한 진짜 가치',
+    target: '목표치',
+    cleared: '🎉 클리어!',
+    failed: '실패… 다시 도전해보자',
+    budgetLeft: '남은 예산',
+    curseCount: (n: number) => `승자의 저주 ${n}회`,
+    backToSelect: '스테이지 선택으로',
   },
 } as const;
-
-/** 금액 표기: 정수 + 천 단위 콤마 */
-export function formatMoney(amount: number): string {
-  return amount.toLocaleString('ko-KR');
-}
