@@ -23,6 +23,12 @@ export interface Appraisal {
   sigma: number;
 }
 
+/** 제출된 입찰. 0 = 불참 */
+export interface PlacedBid {
+  id: string;
+  bid: number;
+}
+
 /** 지난 라운드의 공개 기록. AI가 볼 수 있는 정보는 이것뿐 */
 export interface RoundRecord {
   roundIndex: number;
@@ -36,6 +42,19 @@ export interface RoundRecord {
   profit: number;
   /** 승자의 저주 = 낙찰했는데 손익 < 0 */
   winnersCurse: boolean;
+  /** 복기에서 공개된 전원의 입찰액 */
+  bids: PlacedBid[];
+}
+
+export type BidderKind = 'honest' | 'bulldozer' | 'miser' | 'sniper' | 'cartel';
+
+/** 스테이지에 배치되는 AI 한 명 */
+export interface BidderSpec {
+  kind: BidderKind;
+  /** 같은 성격이 여럿일 때도 유일해야 한다 (예: honest-1, honest-2) */
+  id: string;
+  /** 표시 이름 재정의 (같은 성격 구분용) */
+  name?: string;
 }
 
 export interface StageDef {
@@ -50,5 +69,5 @@ export interface StageDef {
   valueRange: ValueRange;
   /** 클리어 조건: 확보한 진짜 가치 합계 ≥ targetValue */
   targetValue: number;
-  bidderIds: string[];
+  bidders: BidderSpec[];
 }
