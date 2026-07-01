@@ -3,7 +3,13 @@ import type { AuctionResult } from './auction';
 import { settleRound } from './settle';
 import type { Item } from './types';
 
-const item: Item = { id: 'item-0', name: '은촛대', emoji: '🕯️', value: 1000 };
+const item: Item = {
+  id: 'item-0',
+  name: '은촛대',
+  emoji: '🕯️',
+  category: 'antique',
+  value: 1000,
+};
 
 function auctionResult(winnerId: string | null, price: number): AuctionResult {
   return {

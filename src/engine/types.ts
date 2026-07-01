@@ -8,10 +8,14 @@ export interface ValueRange {
   max: number;
 }
 
+/** 아이템 카테고리. ROUND_INTRO에서 공개되는 정보 — AI 선호 시스템의 기준 */
+export type ItemCategory = 'timepiece' | 'art' | 'antique' | 'collectible';
+
 export interface Item {
   id: string;
   name: string;
   emoji: string;
+  category: ItemCategory;
   /** 진짜 가치 V. SETTLE 전에는 UI에 절대 노출하지 않는다 */
   value: number;
 }
@@ -55,6 +59,8 @@ export interface BidderSpec {
   id: string;
   /** 표시 이름 재정의 (같은 성격 구분용) */
   name?: string;
+  /** 선호 카테고리: 해당 아이템에 더 공격적으로 입찰. 브리핑에 힌트 노출 */
+  preferredCategory?: ItemCategory;
 }
 
 export interface StageDef {

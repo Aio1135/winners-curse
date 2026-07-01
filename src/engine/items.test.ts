@@ -13,6 +13,14 @@ describe('generateItem', () => {
     }
   });
 
+  it('모든 아이템은 4개 카테고리 중 하나를 가진다', () => {
+    const rng = createRng(5);
+    for (let i = 0; i < 100; i += 1) {
+      const item = generateItem(i, { min: 100, max: 900 }, rng);
+      expect(['timepiece', 'art', 'antique', 'collectible']).toContain(item.category);
+    }
+  });
+
   it('같은 시드는 같은 아이템을 만든다', () => {
     const a = generateItem(0, { min: 100, max: 900 }, createRng(42));
     const b = generateItem(0, { min: 100, max: 900 }, createRng(42));
