@@ -15,7 +15,7 @@ export const AUCTION_TYPE_LABEL = {
 
 export const TEXT = {
   app: {
-    title: '낙찰王',
+    title: '승자의 저주',
     subtitle: 'AI 입찰자를 상대로 경매 이론을 공략하는 전략 퍼즐',
   },
   playerName: '나',
@@ -35,6 +35,7 @@ export const TEXT = {
     target: '클리어 조건',
     targetValue: (n: number) => `확보 가치 합계 ${formatMoney(n)} 이상`,
     opponents: '오늘의 상대',
+    preferenceHint: (category: string) => `${category} 애호가`,
     start: '경매 시작',
     back: '스테이지 선택으로',
   },
