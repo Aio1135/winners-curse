@@ -218,7 +218,7 @@ function finishRound(state: GameState, auction: AuctionResult): GameState {
     aiBudgets,
     live: null,
     liveEntries: null,
-    review: buildReview(record, participants),
+    review: buildReview(record, participants, PLAYER_ID),
     history: [...state.history, record],
   };
 }
