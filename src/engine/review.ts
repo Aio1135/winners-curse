@@ -1,4 +1,4 @@
-import type { RoundRecord } from './types';
+import type { AuctionType, RoundRecord } from './types';
 
 /** 복기 화면에 표시할 참가자 정보 (감정치는 여기서 처음 공개된다) */
 export interface ReviewParticipantInput {
@@ -16,6 +16,7 @@ export interface ReviewEntry extends ReviewParticipantInput {
 }
 
 export interface ReviewData {
+  auctionType: AuctionType;
   itemValue: number;
   winnerId: string | null;
   price: number;
@@ -31,6 +32,7 @@ export function buildReview(
 ): ReviewData {
   const bidOf = new Map(record.bids.map((b) => [b.id, b.bid]));
   return {
+    auctionType: record.auctionType,
     itemValue: record.itemValue,
     winnerId: record.winnerId,
     price: record.price,
