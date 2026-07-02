@@ -1,6 +1,22 @@
 import type { ReactNode } from 'react';
+import type { ReviewData, ReviewEntry } from '../../engine/review';
+import { PLAYER_ID } from '../state/gameReducer';
 import { useGame } from '../state/GameContext';
 import { TEXT, formatMoney } from '../text';
+
+/** 방식별 입찰 표기: 봉투 = 입찰액, 영국식 = 탈락 시점, 네덜란드식 = 목표가 */
+function bidText(review: ReviewData, entry: ReviewEntry): string {
+  if (entry.isWinner) return TEXT.review.wonAt(entry.bid);
+  switch (review.auctionType) {
+    case 'english':
+      return entry.bid > 0 ? TEXT.review.droppedAt(entry.bid) : TEXT.review.noBid;
+    case 'dutch':
+      if (entry.id === PLAYER_ID) return TEXT.review.notClaimed;
+      return entry.bid > 0 ? TEXT.review.targetWas(entry.bid) : TEXT.review.noBid;
+    default:
+      return entry.bid > 0 ? TEXT.review.bidLabel(entry.bid) : TEXT.review.noBid;
+  }
+}
 
 // 복기 v1: 전원의 감정치 vs 진짜 가치(막대), 입찰액, AI 대사.
 // 판별 피드백(feedback)은 D4에서 채워진다.
@@ -35,7 +51,7 @@ export default function Review() {
                 barClass={entry.appraisal > review.itemValue ? 'bg-red-400' : 'bg-sky-400'}
                 suffix={
                   <span className="text-xs text-slate-400">
-                    {entry.bid > 0 ? TEXT.review.bidLabel(entry.bid) : TEXT.review.noBid}
+                    {bidText(review, entry)}
                     {entry.isWinner && (
                       <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 font-semibold text-slate-900">
                         {TEXT.review.winnerBadge}
