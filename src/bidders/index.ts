@@ -1,7 +1,9 @@
 import type { BidderSpec } from '../engine/types';
 import { createBulldozer } from './bulldozer';
+import { createCartel } from './cartel';
 import { createHonest } from './honest';
 import { createMiser } from './miser';
+import { createSniper } from './sniper';
 import type { Bidder } from './types';
 
 export function createBidder(spec: BidderSpec): Bidder {
@@ -12,8 +14,9 @@ export function createBidder(spec: BidderSpec): Bidder {
       return createBulldozer(spec);
     case 'miser':
       return createMiser(spec);
-    default:
-      // TODO(D5): sniper, cartel
-      throw new Error(`${spec.kind} 성격은 아직 구현되지 않았다`);
+    case 'sniper':
+      return createSniper(spec);
+    case 'cartel':
+      return createCartel(spec);
   }
 }

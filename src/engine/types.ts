@@ -48,6 +48,8 @@ export interface RoundRecord {
   winnersCurse: boolean;
   /** 복기에서 공개된 전원의 입찰액 */
   bids: PlacedBid[];
+  /** 네덜란드식이었다면 이 라운드의 하강 스텝 (복기 틱 계산용) */
+  dutchStep?: number;
 }
 
 export type BidderKind = 'honest' | 'bulldozer' | 'miser' | 'sniper' | 'cartel';
@@ -61,6 +63,8 @@ export interface BidderSpec {
   name?: string;
   /** 선호 카테고리: 해당 아이템에 더 공격적으로 입찰. 브리핑에 힌트 노출 */
   preferredCategory?: ItemCategory;
+  /** cartel 전용: 담합 파트너의 id. 서로를 가리켜야 한다 */
+  partnerId?: string;
 }
 
 export interface StageDef {
@@ -75,5 +79,7 @@ export interface StageDef {
   valueRange: ValueRange;
   /** 클리어 조건: 확보한 진짜 가치 합계 ≥ targetValue */
   targetValue: number;
+  /** 네덜란드식 하강 스텝을 라운드마다 이 범위에서 추첨 (스테이지 7 특이 조건) */
+  dutchStepRange?: { min: number; max: number };
   bidders: BidderSpec[];
 }

@@ -15,6 +15,8 @@ export interface BidderContext {
   totalRounds: number;
   /** 지난 라운드 공개 정보 */
   history: RoundRecord[];
+  /** cartel 전용: 담합 파트너의 감정치. 플레이어 정보는 여전히 볼 수 없다 */
+  partnerAppraisal?: number;
   rng: Rng;
 }
 
@@ -39,6 +41,8 @@ export interface Bidder {
   emoji: string;
   /** 브리핑 화면 한 줄 소개 (성격 힌트) */
   tagline: string;
+  /** sniper 전용: 영국식에서 잔류/탈락 표시를 숨긴다 */
+  concealsStatus?: boolean;
   decide(ctx: BidderContext): BidderPlan;
   /** 복기 대사. 반드시 자기 로직을 정직하게 설명한다 */
   reviewLine(ctx: BidderContext, outcome: BidderOutcome): string;

@@ -128,6 +128,7 @@ interface BidderContext {
   roundIndex: number;
   totalRounds: number;
   history: RoundRecord[]; // 지난 라운드 공개 정보
+  partnerAppraisal?: number; // cartel 전용: 파트너의 감정치 (담합 공유. 플레이어 정보는 여전히 금지)
   rng: Rng;
 }
 interface Bidder {

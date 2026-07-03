@@ -102,6 +102,49 @@ describe('miser (구두쇠)', () => {
   });
 });
 
+describe('sniper (스나이퍼)', () => {
+  it('실시간 방식에선 wtp = 감정치 × 0.95', () => {
+    const bidder = createBidder({ kind: 'sniper', id: 's1' });
+    expect(bidder.decide(ctx({ auctionType: 'english' })).wtp).toBe(950);
+    expect(bidder.decide(ctx({ auctionType: 'dutch' })).wtp).toBe(950);
+  });
+
+  it('턴제(봉투)에선 honest와 동일하게 감정치 그대로', () => {
+    const bidder = createBidder({ kind: 'sniper', id: 's1' });
+    expect(bidder.decide(ctx({ auctionType: 'sealed-first' })).wtp).toBe(1000);
+    expect(bidder.decide(ctx({ auctionType: 'sealed-second' })).wtp).toBe(1000);
+  });
+
+  it('잔류 표시를 숨긴다', () => {
+    expect(createBidder({ kind: 'sniper', id: 's1' }).concealsStatus).toBe(true);
+  });
+});
+
+describe('cartel (담합조)', () => {
+  const spec1 = { kind: 'cartel', id: 'c1', partnerId: 'c2' } as const;
+  const spec2 = { kind: 'cartel', id: 'c2', partnerId: 'c1' } as const;
+
+  it('감정치 높은 쪽만 감정치대로 입찰하고, 낮은 쪽은 wtp 0', () => {
+    const high = createBidder(spec1);
+    const low = createBidder(spec2);
+    expect(high.decide(ctx({ appraisal: 1000, partnerAppraisal: 800 })).wtp).toBe(1000);
+    expect(low.decide(ctx({ appraisal: 800, partnerAppraisal: 1000 })).wtp).toBe(0);
+  });
+
+  it('감정치 동점이면 id가 앞선 쪽이 나선다 (결정적)', () => {
+    const a = createBidder(spec1); // c1 < c2
+    const b = createBidder(spec2);
+    expect(a.decide(ctx({ appraisal: 900, partnerAppraisal: 900 })).wtp).toBe(900);
+    expect(b.decide(ctx({ appraisal: 900, partnerAppraisal: 900 })).wtp).toBe(0);
+  });
+
+  it('복기 대사에서 담합 사실을 공개한다', () => {
+    const low = createBidder(spec2);
+    const line = low.reviewLine(ctx({ appraisal: 800, partnerAppraisal: 1000 }), outcome);
+    expect(line).toContain('들러리');
+  });
+});
+
 describe('선호 카테고리', () => {
   it('선호 아이템이면 wtp × 1.15', () => {
     const miser = createBidder({ kind: 'miser', id: 'm1', preferredCategory: 'antique' });
@@ -122,15 +165,11 @@ describe('utils', () => {
 });
 
 describe('공통', () => {
-  it('복기 대사는 비어 있지 않다', () => {
-    for (const kind of ['honest', 'bulldozer', 'miser'] as const) {
+  it('복기 대사는 비어 있지 않다 (전 성격)', () => {
+    for (const kind of ['honest', 'bulldozer', 'miser', 'sniper', 'cartel'] as const) {
       const bidder = createBidder({ kind, id: `${kind}-1`, preferredCategory: 'collectible' });
       expect(bidder.reviewLine(ctx(), outcome).length).toBeGreaterThan(0);
       expect(bidder.reviewLine(ctx(), { ...outcome, won: true }).length).toBeGreaterThan(0);
     }
-  });
-
-  it('미구현 성격은 던진다', () => {
-    expect(() => createBidder({ kind: 'sniper', id: 's1' })).toThrow();
   });
 });
