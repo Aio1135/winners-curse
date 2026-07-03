@@ -16,6 +16,8 @@ export interface AuctionResult {
   /** null = 유찰 */
   winnerId: string | null;
   price: number;
+  /** 네덜란드식일 때 이 라운드의 하강 스텝 (복기 틱 계산용) */
+  dutchStep?: number;
 }
 
 /** 실제 지불 가능한 상한: 정수 내림, 예산 초과·음수 금지 */
@@ -188,6 +190,8 @@ export interface DutchState {
   startPrice: number;
   /** 하한 = V 범위 상한의 20%. 도달 시 유찰 */
   floor: number;
+  /** 이 라운드의 하강 스텝 (기본 3%, 스테이지 7은 라운드마다 랜덤) */
+  step: number;
   tickCount: number;
   finished: boolean;
   winnerId: string | null;
@@ -207,13 +211,19 @@ function checkDutchTriggers(
 }
 
 /** 시작가 = V 생성 범위 상한의 150%. entries에는 자동 트리거 참가자(AI)만 넣는다 */
-export function startDutch(entries: AuctionEntry[], range: ValueRange, rng: Rng): DutchState {
+export function startDutch(
+  entries: AuctionEntry[],
+  range: ValueRange,
+  rng: Rng,
+  step: number = DUTCH_STEP,
+): DutchState {
   const startPrice = Math.floor(range.max * DUTCH_START_RATIO);
   const base: DutchState = {
     auctionType: 'dutch',
     price: startPrice,
     startPrice,
     floor: Math.floor(range.max * DUTCH_FLOOR_RATIO),
+    step,
     tickCount: 0,
     finished: false,
     winnerId: null,
@@ -222,10 +232,10 @@ export function startDutch(entries: AuctionEntry[], range: ValueRange, rng: Rng)
   return checkDutchTriggers(base, entries, rng);
 }
 
-/** 가격 3% 하강 → 목표가 도달한 AI가 즉시 낙찰. 하한 도달 시 유찰 */
+/** 가격이 스텝만큼 하강 → 목표가 도달한 AI가 즉시 낙찰. 하한 도달 시 유찰 */
 export function tickDutch(state: DutchState, entries: AuctionEntry[], rng: Rng): DutchState {
   if (state.finished) return state;
-  const dropped = Math.floor(state.price * (1 - DUTCH_STEP));
+  const dropped = Math.floor(state.price * (1 - state.step));
   const newPrice = Math.max(state.floor, dropped);
   const next = { ...state, price: newPrice, tickCount: state.tickCount + 1 };
   const triggered = checkDutchTriggers(next, entries, rng);
@@ -255,6 +265,7 @@ export function dutchResult(state: DutchState, aiEntries: AuctionEntry[]): Aucti
     bids,
     winnerId: state.winnerId,
     price: state.winnerId === null ? 0 : state.finalPrice,
+    dutchStep: state.step,
   };
 }
 
@@ -269,6 +280,7 @@ export function runAuction(
   entries: AuctionEntry[],
   rng: Rng,
   valueRange?: ValueRange,
+  dutchStep?: number,
 ): AuctionResult {
   switch (auctionType) {
     case 'sealed-first':
@@ -282,7 +294,7 @@ export function runAuction(
     }
     case 'dutch': {
       if (valueRange === undefined) throw new Error('네덜란드식 경매에는 valueRange가 필요하다');
-      let state = startDutch(entries, valueRange, rng);
+      let state = startDutch(entries, valueRange, rng, dutchStep);
       while (!state.finished) state = tickDutch(state, entries, rng);
       return dutchResult(state, entries);
     }

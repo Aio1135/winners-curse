@@ -69,10 +69,11 @@ function dutchFeedback(record: RoundRecord, playerId: string): string | null {
     return 'AI 중 이 물건을 노리는 이가 없었다 — 하한 근처까지 기다려도 안전했다.';
   }
   // AI 목표가 위에 머무는 동안만 안전하게 기다릴 수 있다
+  const step = record.dutchStep ?? DUTCH_STEP;
   let price = record.price;
   let ticks = 0;
-  while (Math.floor(price * (1 - DUTCH_STEP)) > maxTarget) {
-    price = Math.floor(price * (1 - DUTCH_STEP));
+  while (Math.floor(price * (1 - step)) > maxTarget) {
+    price = Math.floor(price * (1 - step));
     ticks += 1;
   }
   if (ticks > 0) {

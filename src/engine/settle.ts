@@ -19,5 +19,6 @@ export function settleRound(
     profit,
     winnersCurse: won && profit < 0,
     bids: auction.bids,
+    dutchStep: auction.dutchStep,
   };
 }
