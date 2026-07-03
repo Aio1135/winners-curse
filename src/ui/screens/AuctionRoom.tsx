@@ -8,7 +8,7 @@ import ItemCard from '../components/ItemCard';
 import SealedBidPanel from '../components/SealedBidPanel';
 import { PLAYER_ID } from '../state/gameReducer';
 import { useGame } from '../state/GameContext';
-import { TEXT, formatMoney } from '../text';
+import { AUCTION_TYPE_LABEL, TEXT, formatMoney } from '../text';
 
 // ROUND_INTRO → JUDGEMENT → BIDDING → SETTLE 구간을 담당하는 화면
 export default function AuctionRoom() {
@@ -29,7 +29,12 @@ export default function AuctionRoom() {
     { id: PLAYER_ID, name: TEXT.playerName, emoji: '🙂' },
     ...stage.bidders.map((spec) => {
       const bidder = createBidder(spec);
-      return { id: bidder.id, name: bidder.name, emoji: bidder.emoji };
+      return {
+        id: bidder.id,
+        name: bidder.name,
+        emoji: bidder.emoji,
+        conceals: bidder.concealsStatus === true,
+      };
     }),
   ];
 
@@ -37,6 +42,9 @@ export default function AuctionRoom() {
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-6 p-6">
       <header className="flex w-full items-center justify-between text-sm text-slate-400">
         <span>{TEXT.auctionRoom.round(state.roundIndex + 1, stage.rounds)}</span>
+        <span className="rounded-full border border-slate-700 px-2 py-0.5 text-xs">
+          {AUCTION_TYPE_LABEL[round.auctionType]}
+        </span>
         <span>
           {TEXT.auctionRoom.budget} {formatMoney(state.budget)} · {TEXT.auctionRoom.coins}{' '}
           {state.coins}
@@ -76,9 +84,9 @@ export default function AuctionRoom() {
 
       {state.phase === 'BIDDING' &&
         live === null &&
-        (stage.auctionType === 'sealed-first' || stage.auctionType === 'sealed-second') && (
+        (round.auctionType === 'sealed-first' || round.auctionType === 'sealed-second') && (
           <SealedBidPanel
-            auctionType={stage.auctionType}
+            auctionType={round.auctionType}
             budget={state.budget}
             onSubmit={(amount) => dispatch({ type: 'PLAYER_BID', amount })}
           />

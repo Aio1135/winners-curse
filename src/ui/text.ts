@@ -71,6 +71,7 @@ export const TEXT = {
     claim: '낙찰!',
     inAuction: '경합 중',
     notEntered: '불참',
+    unknown: '…?',
     watching: '탈락했다 — 남은 경매를 지켜보는 중…',
     overBudget: '예산이 모자라 지금 가격에는 살 수 없다',
     floorNote: (n: number) => `${formatMoney(n)}까지 내려가면 유찰`,

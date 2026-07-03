@@ -1,6 +1,7 @@
 import { createBidder } from '../../bidders';
 import type { Bidder, BidderContext, BidderOutcome } from '../../bidders/types';
 import {
+  DUTCH_STEP,
   claimDutch,
   dropFromEnglish,
   dutchResult,
@@ -38,6 +39,8 @@ export type GamePhase =
 
 export interface RoundSetup {
   item: Item;
+  /** 이번 라운드의 경매 방식 (mixed 스테이지는 라운드마다 추첨) */
+  auctionType: AuctionType;
   playerAppraisal: Appraisal;
   /** REVIEW 전까지 UI 노출 금지 */
   aiAppraisals: Record<string, Appraisal>;
@@ -103,17 +106,21 @@ function deriveRng(seed: number, roundIndex: number, tag: string): Rng {
   return createRng(seedFromString(`${seed}:${roundIndex}:${tag}`));
 }
 
-function stageAuctionType(stage: StageDef): AuctionType {
-  if (stage.auctionType === 'mixed') {
-    throw new Error('mixed 방식은 아직 구현되지 않았다'); // TODO(D5)
-  }
-  return stage.auctionType;
-}
+const ALL_AUCTION_TYPES: readonly AuctionType[] = [
+  'english',
+  'dutch',
+  'sealed-first',
+  'sealed-second',
+];
 
-/** 라운드 시작: 아이템 생성 + 전원 감정치 추첨 */
+/** 라운드 시작: 방식 확정 + 아이템 생성 + 전원 감정치 추첨 */
 function setupRound(state: GameState, roundIndex: number): GameState {
   const stage = state.stage;
   if (stage === null) return state;
+  const auctionType: AuctionType =
+    stage.auctionType === 'mixed'
+      ? deriveRng(state.seed, roundIndex, 'auction-type').pick(ALL_AUCTION_TYPES)
+      : stage.auctionType;
   const item = generateItem(roundIndex, stage.valueRange, deriveRng(state.seed, roundIndex, 'item'));
   const playerAppraisal = appraise(
     item.value,
@@ -133,11 +140,18 @@ function setupRound(state: GameState, roundIndex: number): GameState {
     phase: 'ROUND_INTRO',
     roundIndex,
     appraisalUsed: false,
-    round: { item, playerAppraisal, aiAppraisals },
+    round: { item, auctionType, playerAppraisal, aiAppraisals },
     live: null,
     liveEntries: null,
     review: null,
   };
+}
+
+/** 스테이지 7 특이 조건: 네덜란드식 하강 스텝을 라운드마다 추첨 */
+function roundDutchStep(state: GameState, stage: StageDef): number {
+  if (stage.dutchStepRange === undefined) return DUTCH_STEP;
+  const { min, max } = stage.dutchStepRange;
+  return min + deriveRng(state.seed, state.roundIndex, 'dutch-step').next() * (max - min);
 }
 
 /** AI 입찰자 인스턴스·컨텍스트·참가 계획을 결정적으로 재구성한다 */
@@ -149,19 +163,22 @@ function buildAiPlans(state: GameState): {
   const stage = state.stage;
   const round = state.round;
   if (stage === null || round === null) throw new Error('라운드가 준비되지 않았다');
-  const auctionType = stageAuctionType(stage);
   const bidders = stage.bidders.map(createBidder);
   const contexts: Record<string, BidderContext> = {};
   const entries: AuctionEntry[] = [];
   for (const bidder of bidders) {
+    const spec = stage.bidders.find((s) => s.id === bidder.id);
+    const partnerId = spec?.partnerId;
     const ctx: BidderContext = {
       appraisal: round.aiAppraisals[bidder.id].value,
       budget: state.aiBudgets[bidder.id] ?? 0,
-      auctionType,
+      auctionType: round.auctionType,
       itemCategory: round.item.category,
       roundIndex: state.roundIndex,
       totalRounds: stage.rounds,
       history: state.history,
+      partnerAppraisal:
+        partnerId !== undefined ? round.aiAppraisals[partnerId]?.value : undefined,
       rng: deriveRng(state.seed, state.roundIndex, `decide:${bidder.id}`),
     };
     contexts[bidder.id] = ctx;
@@ -225,12 +242,14 @@ function finishRound(state: GameState, auction: AuctionResult): GameState {
 
 /** 봉투 방식 실행. playerBid 0 = 불참(패스 포함) */
 function resolveSealed(state: GameState, playerBid: number): GameState {
-  const stage = state.stage;
-  if (stage === null) return state;
-  const auctionType = stageAuctionType(stage);
+  const round = state.round;
+  if (round === null) return state;
+  if (round.auctionType !== 'sealed-first' && round.auctionType !== 'sealed-second') {
+    return state;
+  }
   const { entries } = buildAiPlans(state);
   const auction = runAuction(
-    auctionType,
+    round.auctionType,
     [{ id: PLAYER_ID, wtp: playerBid, budget: state.budget }, ...entries],
     deriveRng(state.seed, state.roundIndex, 'tie'),
   );
@@ -298,8 +317,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'PASS_ROUND': {
-      if (state.phase !== 'JUDGEMENT' || state.stage === null) return state;
-      const auctionType = stageAuctionType(state.stage);
+      if (state.phase !== 'JUDGEMENT' || state.stage === null || state.round === null) {
+        return state;
+      }
+      const auctionType = state.round.auctionType;
       if (auctionType === 'sealed-first' || auctionType === 'sealed-second') {
         return resolveSealed(state, 0);
       }
@@ -310,13 +331,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         entries,
         deriveRng(state.seed, state.roundIndex, 'rt-pass'),
         state.stage.valueRange,
+        roundDutchStep(state, state.stage),
       );
       return finishRound(state, auction);
     }
 
     case 'ENTER_BIDDING': {
-      if (state.phase !== 'JUDGEMENT' || state.stage === null) return state;
-      const auctionType = stageAuctionType(state.stage);
+      if (state.phase !== 'JUDGEMENT' || state.stage === null || state.round === null) {
+        return state;
+      }
+      const auctionType = state.round.auctionType;
       if (auctionType === 'sealed-first' || auctionType === 'sealed-second') {
         return { ...state, phase: 'BIDDING' };
       }
@@ -336,6 +360,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         entries,
         state.stage.valueRange,
         deriveRng(state.seed, state.roundIndex, 'rt:0'),
+        roundDutchStep(state, state.stage),
       );
       const next = { ...state, phase: 'BIDDING' as const, liveEntries: entries };
       return settleIfFinished(next, live);

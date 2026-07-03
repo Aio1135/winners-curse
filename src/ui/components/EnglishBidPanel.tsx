@@ -5,6 +5,8 @@ export interface RealtimeParticipant {
   id: string;
   name: string;
   emoji: string;
+  /** 스나이퍼: 잔류/탈락 표시를 숨긴다 */
+  conceals?: boolean;
 }
 
 // 영국식(공개 상승) 패널: 호가 상승을 지켜보며 "포기" 타이밍을 정한다
@@ -34,16 +36,20 @@ export default function EnglishBidPanel({
         {participants.map((p) => {
           const active = live.activeIds.includes(p.id);
           const drop = live.drops.find((d) => d.id === p.id);
+          // 스나이퍼는 잔류/탈락을 알 수 없다 (§6 행동 숨김)
+          const conceals = p.conceals === true;
           return (
-            <li key={p.id} className={active ? '' : 'opacity-40'}>
+            <li key={p.id} className={active || conceals ? '' : 'opacity-40'}>
               <div className="text-2xl">{p.emoji}</div>
               <div className="font-semibold">{p.name}</div>
               <div className="text-xs text-slate-400">
-                {active
-                  ? TEXT.bidding.inAuction
-                  : drop !== undefined && drop.bid > 0
-                    ? TEXT.review.droppedAt(drop.bid)
-                    : TEXT.bidding.notEntered}
+                {conceals
+                  ? TEXT.bidding.unknown
+                  : active
+                    ? TEXT.bidding.inAuction
+                    : drop !== undefined && drop.bid > 0
+                      ? TEXT.review.droppedAt(drop.bid)
+                      : TEXT.bidding.notEntered}
               </div>
             </li>
           );
