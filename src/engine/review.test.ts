@@ -16,6 +16,8 @@ function record(overrides: {
     roundIndex: 0,
     auctionType: overrides.auctionType ?? 'sealed-first',
     itemId: 'item-0',
+    itemName: '은촛대',
+    itemEmoji: '🕯️',
     itemValue,
     winnerId: overrides.winnerId ?? null,
     price,

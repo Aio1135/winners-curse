@@ -38,6 +38,8 @@ export interface RoundRecord {
   roundIndex: number;
   auctionType: AuctionType;
   itemId: string;
+  itemName: string;
+  itemEmoji: string;
   itemValue: number;
   /** null = 유찰 */
   winnerId: string | null;

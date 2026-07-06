@@ -13,6 +13,8 @@ export function settleRound(
     roundIndex,
     auctionType: auction.auctionType,
     itemId: item.id,
+    itemName: item.name,
+    itemEmoji: item.emoji,
     itemValue: item.value,
     winnerId: auction.winnerId,
     price: won ? auction.price : 0,

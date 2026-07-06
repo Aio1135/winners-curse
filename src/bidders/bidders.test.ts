@@ -25,6 +25,8 @@ function lossRecord(roundIndex: number, winnerId: string | null): RoundRecord {
     roundIndex,
     auctionType: 'sealed-first',
     itemId: `item-${roundIndex}`,
+    itemName: '은촛대',
+    itemEmoji: '🕯️',
     itemValue: 1000,
     winnerId,
     price: 0,
