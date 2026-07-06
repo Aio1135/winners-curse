@@ -22,15 +22,27 @@ function bidText(review: ReviewData, entry: ReviewEntry): string {
 // 판별 피드백(feedback)은 D4에서 채워진다.
 export default function Review() {
   const { state, dispatch } = useGame();
-  const { stage, review } = state;
-  if (stage === null || review === null) return null;
+  const { stage, review, round } = state;
+  if (stage === null || review === null || round === null) return null;
 
   const maxValue = Math.max(review.itemValue, ...review.entries.map((e) => e.appraisal));
   const isLastRound = state.roundIndex + 1 >= stage.rounds;
+  const profit = review.itemValue - review.price;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-6 p-6">
-      <h1 className="text-center text-2xl font-bold">{TEXT.review.heading}</h1>
+      <header className="text-center">
+        <h1 className="text-2xl font-bold">{TEXT.review.heading}</h1>
+        <p className="mt-1 text-sm text-slate-400">
+          {round.item.emoji} {round.item.name}
+          {review.winnerId !== null && (
+            <span className={profit >= 0 ? 'ml-2 text-emerald-400' : 'ml-2 text-red-400'}>
+              {TEXT.settle.profit} {profit >= 0 ? '+' : ''}
+              {formatMoney(profit)}
+            </span>
+          )}
+        </p>
+      </header>
 
       <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
         {/* 진짜 가치 기준 막대 */}
@@ -43,7 +55,10 @@ export default function Review() {
 
         <div className="mt-5 space-y-4">
           {review.entries.map((entry) => (
-            <div key={entry.id}>
+            <div
+              key={entry.id}
+              className={entry.id === PLAYER_ID ? '-mx-2 rounded-lg bg-slate-700/30 px-2 py-1' : ''}
+            >
               <ValueBar
                 label={`${entry.emoji} ${entry.name}`}
                 value={entry.appraisal}

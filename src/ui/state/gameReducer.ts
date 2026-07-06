@@ -20,6 +20,7 @@ import { APPRAISAL_SIGMA, appraise, generateItem } from '../../engine/items';
 import { createRng, seedFromString, type Rng } from '../../engine/rng';
 import { buildReview, type ReviewData, type ReviewParticipantInput } from '../../engine/review';
 import { settleRound } from '../../engine/settle';
+import { isStageUnlocked, stageStars, type ProgressMap } from '../../engine/stage';
 import type { Appraisal, AuctionType, Item, RoundRecord, StageDef } from '../../engine/types';
 import { getStage } from '../../stages/stages';
 import { TEXT } from '../text';
@@ -69,6 +70,8 @@ export interface GameState {
   /** 직전 라운드의 정산·복기 데이터 (SETTLE/REVIEW 화면용) */
   review: ReviewData | null;
   history: RoundRecord[];
+  /** 스테이지별 최고 별점. JSON 내보내기/불러오기로만 영속화 (localStorage 금지) */
+  progress: ProgressMap;
 }
 
 export type GameAction =
@@ -83,6 +86,7 @@ export type GameAction =
   | { type: 'TICK' }
   | { type: 'OPEN_REVIEW' }
   | { type: 'NEXT_ROUND' }
+  | { type: 'IMPORT_PROGRESS'; progress: ProgressMap }
   | { type: 'EXIT_STAGE' };
 
 export const initialState: GameState = {
@@ -99,6 +103,7 @@ export const initialState: GameState = {
   liveEntries: null,
   review: null,
   history: [],
+  progress: {},
 };
 
 /** 용도별 독립 RNG 파생 — 감정 재추첨이 다른 추첨에 영향을 주지 않게 한다 */
@@ -271,7 +276,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SELECT_STAGE': {
       if (state.phase !== 'STAGE_SELECT') return state;
       const stage = getStage(action.stageId);
-      if (stage === undefined) return state; // 미구현/잠김 스테이지
+      if (stage === undefined) return state;
+      if (!isStageUnlocked(action.stageId, state.progress)) return state; // 잠김
       return { ...state, phase: 'BRIEFING', stage };
     }
 
@@ -409,12 +415,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'NEXT_ROUND': {
       if (state.phase !== 'REVIEW' || state.stage === null) return state;
       const next = state.roundIndex + 1;
-      if (next >= state.stage.rounds) return { ...state, phase: 'RESULT' };
+      if (next >= state.stage.rounds) {
+        // 별점 확정 + 최고 기록 갱신
+        const stars = stageStars(state.stage, state.history, PLAYER_ID, state.budget);
+        const best = Math.max(stars, state.progress[state.stage.id] ?? 0);
+        return {
+          ...state,
+          phase: 'RESULT',
+          progress: { ...state.progress, [state.stage.id]: best },
+        };
+      }
       return setupRound(state, next);
     }
 
+    case 'IMPORT_PROGRESS': {
+      if (state.phase !== 'STAGE_SELECT') return state;
+      return { ...state, progress: action.progress };
+    }
+
     case 'EXIT_STAGE': {
-      return { ...initialState, seed: state.seed };
+      return { ...initialState, seed: state.seed, progress: state.progress };
     }
 
     default:
